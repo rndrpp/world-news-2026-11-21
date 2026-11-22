@@ -7,11 +7,18 @@
 // Run it locally with MAKEFUN_OUTPUT_DIR standing in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 const source = new URL('./entry.png', import.meta.url);
+const target = join(outDir, 'entry.png');
 
 mkdirSync(outDir, { recursive: true });
-copyFileSync(source, join(outDir, 'entry.png'));
+copyFileSync(source, target);
+
+// The gate wants one whole image of at most 1 MiB: say what was written, and fail loudly if the
+// committed poster ever goes missing so a broken run is never mistaken for a good one.
+const { size } = statSync(target);
+if (size > 1024 * 1024) throw new Error(`entry.png is ${size} bytes, over the 1 MiB cap`);
+console.log(`wrote ${target} (${size} bytes)`);
